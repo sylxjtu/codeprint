@@ -1,0 +1,11 @@
+PAPER_SIZE = "a4paper"
+DOCUMENT_CLASS = "article"
+PACKAGES = ["amsmath", "minted", "fontspec", "xeCJK", "titlesec", "hyperref", "geometry", "fancyvrb"]
+SECTION_BREAK = True
+CODE_FONT = "Fantasque Sans Mono"
+CJK_FONT = "Microsoft YaHei"
+LANGUAGE_SETTINGS = {'cpp': ['linenos', 'breaklines', ('tabsize', '2')]}
+GEOMENTRY_SETTINGS = {('left', '3cm'), ('right', '2cm'), ('top', '2cm'), ('bottom', '2cm')}
+TITLE = "SAJIHPTS Code Snippets"
+DATE = "\\today"
+AUTHOR = "SAJIHPTS Team"
