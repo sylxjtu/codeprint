@@ -3,15 +3,15 @@ import datetime
 import os
 import sys
 import shutil
-import printConf
+import printConf as setting
 import re
+from hashlib import md5
 from collections import OrderedDict
 
-# initialize languages
-languages = {'.cpp': 'cpp', '.txt': 'text'}
-codeFiles = OrderedDict({})
-
 def _tex_escape(text):
+    """
+    Escape raw text into tex text
+    """
     conv = {
         '&': r'\&',
         '%': r'\%',
@@ -29,7 +29,10 @@ def _tex_escape(text):
     regex = re.compile('|'.join(re.escape(key) for key in sorted(conv.keys(), key = lambda item: - len(item))))
     return regex.sub(lambda match: conv[match.group()], text)
 
-def generateHeader(setting):
+def generateHeader():
+    """
+    Generate tex file header
+    """
     # Set document class
     ret = ""
     ret += "\\documentclass[%s]{%s}\n" % (setting.PAPER_SIZE, setting.DOCUMENT_CLASS)
@@ -72,34 +75,68 @@ def generateHeader(setting):
     return ret
 
 def generateSection(title):
+    """
+    Generate section (corresponding to a directory)
+    """
     return "\\section{%s}\n" % _tex_escape(title)
 
-def generateFile(directory, filename):
-    fname, extname = os.path.splitext(filename) 
+def generateSubsection(title):
+    """
+    Generate subsection (corresponding to a file)
+    """
+    return "\\subsection{%s}\n" % _tex_escape(title)
+
+def _safeReadfile(filepath):
+    """
+    Read file with correct encoding
+    """
+    ret = None
+    for enc in setting.POSSIBLE_ENCODING:
+        f = open(filepath, encoding = enc)
+        try:
+            ret = f.read()
+            f.close()
+            return ret
+        except UnicodeDecodeError:
+            f.close()
+            pass
+    raise UnicodeDecodeError('All possible encoding failed for {0}, please add its encoding in config'.format(filepath))
+
+def mintedGenerator(mintedClass):
+    def generateFile(directory, filename):
+        fname, extname = os.path.splitext(filename)
+        ret = ""
+        ret += generateSubsection(fname)
+        ret += "\\begin{minted}{%s}\n" % mintedClass
+        ret += _safeReadfile(os.path.join(directory, filename)).replace('\t', ' ' * setting.TAB_SIZE)
+        ret += "\\end{minted}\n"
+        return ret
+    return generateFile
+
+def pdfGenerator(directory, filename):
+    fname, extname = os.path.splitext(filename)
+    md5filename = md5(os.path.join(directory, filename).encode('utf-8')).hexdigest() + '.pdf'
+    shutil.copyfile(os.path.join(directory, filename), os.path.join('.', 'pdfs', md5filename))
     ret = ""
-    ret += "\\subsection{%s}\n" % _tex_escape(fname)
-    ret += "\\begin{minted}{%s}\n" % languages[extname]
-    try:
-        f = open(os.path.join(directory, filename), encoding="utf-8-sig")
-        ret += f.read().replace('\t', '  ')
-    except UnicodeDecodeError:
-        f.close()
-        f = open(os.path.join(directory, filename))
-        ret += f.read().replace('\t', '  ')
-    f.close()
-    ret += "\\end{minted}\n"
+    ret += generateSubsection(fname)
+    ret += "\\includepdf[pages=-]{%s}\n" % os.path.join('.', 'pdfs', md5filename).replace('\\', '/')
     return ret
 
-footer = r"\end{document}" '\n'
+footer = "\\end{document}\n"
 
-#Change dir to script dir
+# initialize languages
+languages = {'.cpp': mintedGenerator('cpp'), '.txt': mintedGenerator('text'), '.pdf': pdfGenerator}
+codeFiles = OrderedDict({})
+
+# Change dir to script dir
 os.chdir(sys.path[0])
 
-#Mkdir dist
+# Mkdir dist
 if os.path.exists("dist"):
     shutil.rmtree("dist")
 os.makedirs("dist")
 os.chdir("dist")
+os.makedirs("pdfs")
 
 for root, dirs, files in os.walk('..', topdown=True):
     dirs[:] = [d for d in dirs if d[0] != '.']
@@ -109,13 +146,14 @@ for root, dirs, files in os.walk('..', topdown=True):
         codeFiles.setdefault(root, []).append(f)
 
 with open('out.tex', 'w', encoding="utf8") as fh:
-    fh.write("%% Auto Generated on %s\n" % datetime.datetime.today().isoformat(' '))
-    fh.write(generateHeader(printConf))
+    fh.write("%% Automatically Generated at %s by codeprint (github.com/sylxjtu/codeprint)\n" % datetime.datetime.today().isoformat(' '))
+    fh.write(generateHeader())
     for directory in codeFiles:
         directoryName = os.path.basename(directory)
         fh.write(generateSection(directoryName))
         for codeFile in codeFiles[directory]:
-            fh.write(generateFile(directory, codeFile))
+            extname = os.path.splitext(codeFile)[1]
+            fh.write(languages[extname](directory, codeFile))
     fh.write(footer)
 
 os.system("xelatex -shell-escape out.tex")
