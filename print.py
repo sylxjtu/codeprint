@@ -138,7 +138,7 @@ def mintedGenerator(mintedClass):
         ret += generateSubsection(fname)
         ret += "\\begin{minted}{%s}\n" % mintedClass
         ret += _safeReadfile(os.path.join(directory, filename)).replace('\t', ' ' * setting.TAB_SIZE)
-        ret += "\\end{minted}\n"
+        ret += "\n\\end{minted}\n"
         return ret
     return generateFile
 
