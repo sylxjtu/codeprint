@@ -154,7 +154,7 @@ def pdfGenerator(directory, filename):
 
 
 # initialize languages
-languages = {'.cpp': mintedGenerator('cpp'), '.txt': mintedGenerator('text'), '.pdf': pdfGenerator}
+languages = {'.cpp': mintedGenerator('cpp'), '.java': mintedGenerator('java'), '.py': mintedGenerator('python'), '.txt': mintedGenerator('text'), '.pdf': pdfGenerator}
 codeFiles = OrderedDict({})
 
 # Change dir to script dir
